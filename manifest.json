@@ -1,0 +1,17 @@
+﻿{
+  "name": "HTML Previewer",
+  "short_name": "Previewer",
+  "description": "A minimal pastel offline HTML file viewer.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#fdf6e3",
+  "theme_color": "#ffb3ba",
+  "icons": [
+    {
+      "src": "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCA1MTIgNTEyIj48cmVjdCB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgZmlsbD0iI2ZmYjNiYSIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBkb21pbmFudC1iYXNlbGluZT0ibWlkZGxlIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiBmb250LWZhbWlseT0ic2Fucy1zZXJpZiIgZm9udC13ZWlnaHQ9ImJvbGQiIGZvbnQtc2l6ZT0iMTIwcHgiIGZpbGw9IiMzMzMiPkhUTUw8L3RleHQ+PC9zdmc+",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
