@@ -1,9 +1,9 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HTML Previewer</title>
+    <title>HTML Previewer & Editor</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffb3ba">
     <style>
@@ -25,18 +25,18 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
             box-sizing: border-box;
+            overflow: hidden;
         }
 
         .controls {
             display: flex;
-            gap: 15px;
+            gap: 12px;
             margin-bottom: 20px;
             flex-wrap: wrap;
             justify-content: center;
             width: 100%;
-            max-width: 800px;
         }
 
         input[type="file"] {
@@ -46,10 +46,10 @@
         .btn {
             background-color: var(--accent-color);
             color: #333;
-            padding: 12px 24px;
+            padding: 10px 20px;
             border: none;
             border-radius: 30px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 600;
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.1s ease;
@@ -64,26 +64,71 @@
             transform: scale(0.98);
         }
 
-        /* Hidden by default, shown via JS when PWA is installable */
         #installBtn {
             display: none; 
             background-color: #baffc9;
         }
+        
         #installBtn:hover {
             background-color: #90f2a7;
         }
 
+        .workspace {
+            width: 100%;
+            max-width: 1400px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            position: relative;
+        }
+
+        .editor-container {
+            display: none; /* Hidden by default */
+            flex: 1;
+            flex-direction: column;
+            background-color: var(--container-bg);
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            overflow: hidden;
+            width: 100%;
+            height: 100%;
+        }
+
+        .editor-header {
+            background: #f7f7f7;
+            padding: 10px 15px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #888;
+            border-bottom: 1px solid #eee;
+        }
+
+        #code-editor {
+            flex-grow: 1;
+            width: 100%;
+            border: none;
+            padding: 15px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            resize: none;
+            outline: none;
+            box-sizing: border-box;
+            background-color: #fafafa;
+            color: #333;
+        }
+
         #preview-container {
             position: relative;
-            width: 100%;
-            max-width: 1200px;
-            flex-grow: 1;
+            flex: 1;
             background-color: var(--container-bg);
             border-radius: var(--border-radius);
             box-shadow: 0 10px 30px rgba(0,0,0,0.08);
             overflow: hidden;
             display: flex;
             flex-direction: column;
+            width: 100%;
+            height: 100%;
         }
 
         #preview-frame {
@@ -94,7 +139,6 @@
             background: #fff;
         }
 
-        /* Watermark styling - Absolute positioned, high z-index, no pointer events */
         #watermark {
             position: absolute;
             bottom: 20px;
@@ -111,12 +155,22 @@
             transition: font-size 0.3s ease;
         }
 
-        /* Fullscreen normalizations */
         #preview-container:fullscreen {
             border-radius: 0;
             max-width: none;
             width: 100vw;
             height: 100vh;
+        }
+
+        @media (max-width: 800px) {
+            body {
+                overflow: auto; 
+                height: auto;
+                min-height: 100vh;
+            }
+            .workspace {
+                height: 70vh;
+            }
         }
     </style>
 </head>
@@ -125,22 +179,61 @@
     <div class="controls">
         <label for="fileInput" class="btn">Upload HTML</label>
         <input type="file" id="fileInput" accept=".html,.htm">
+        
+        <!-- New Toggle Code Button -->
+        <button class="btn" id="toggleViewBtn">Edit Code</button>
+        
+        <button class="btn" id="printBtn">Print Preview</button>
         <button class="btn" id="fullscreenBtn">Full Screen</button>
         <button class="btn" id="installBtn">Download App</button>
     </div>
 
-    <div id="preview-container">
-        <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
-        <div id="watermark">By Hucinty</div>
+    <div class="workspace">
+        <!-- Editor View (Hidden by default) -->
+        <div class="editor-container" id="editor-container">
+            <div class="editor-header">Live Code Editor</div>
+            <textarea id="code-editor" spellcheck="false" placeholder="Upload a file or type HTML here..."></textarea>
+        </div>
+
+        <!-- Preview View (Visible by default) -->
+        <div id="preview-container">
+            <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-modals allow-popups"></iframe>
+            <div id="watermark">By Hucinty</div>
+        </div>
     </div>
 
     <script>
         const fileInput = document.getElementById('fileInput');
+        const codeEditor = document.getElementById('code-editor');
         const previewFrame = document.getElementById('preview-frame');
         const fullscreenBtn = document.getElementById('fullscreenBtn');
+        const printBtn = document.getElementById('printBtn');
+        const toggleViewBtn = document.getElementById('toggleViewBtn');
         const previewContainer = document.getElementById('preview-container');
+        const editorContainer = document.getElementById('editor-container');
         const watermark = document.getElementById('watermark');
         const installBtn = document.getElementById('installBtn');
+
+        let isCodeView = false;
+
+        // View Toggling Logic
+        toggleViewBtn.addEventListener('click', () => {
+            isCodeView = !isCodeView;
+            if (isCodeView) {
+                editorContainer.style.display = 'flex';
+                previewContainer.style.display = 'none';
+                toggleViewBtn.textContent = 'Show Preview';
+            } else {
+                editorContainer.style.display = 'none';
+                previewContainer.style.display = 'flex';
+                toggleViewBtn.textContent = 'Edit Code';
+            }
+        });
+
+        // Update iframe when typing in editor
+        codeEditor.addEventListener('input', () => {
+            previewFrame.srcdoc = codeEditor.value;
+        });
 
         // File Upload Logic
         fileInput.addEventListener('change', (event) => {
@@ -148,14 +241,34 @@
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    previewFrame.srcdoc = e.target.result;
+                    const content = e.target.result;
+                    codeEditor.value = content;
+                    previewFrame.srcdoc = content;
+                    
+                    // Auto-switch to preview mode when a new file is uploaded
+                    if (isCodeView) {
+                        toggleViewBtn.click();
+                    }
                 };
                 reader.readAsText(file);
             }
         });
 
-        // Fullscreen Logic for the Container only
+        // Master Print Logic - targets the iframe document directly
+        printBtn.addEventListener('click', () => {
+            if (previewFrame.contentWindow) {
+                previewFrame.contentWindow.focus();
+                previewFrame.contentWindow.print();
+            }
+        });
+
+        // Fullscreen Logic
         fullscreenBtn.addEventListener('click', () => {
+            // If in code view, switch to preview before going fullscreen
+            if (isCodeView) {
+                toggleViewBtn.click();
+            }
+
             if (!document.fullscreenElement) {
                 previewContainer.requestFullscreen().catch(err => {
                     alert(`Error attempting to enable fullscreen: ${err.message}`);
@@ -169,30 +282,27 @@
         function adjustWatermark() {
             const width = window.innerWidth;
             if (width < 600) {
-                watermark.style.fontSize = '12px'; // Mobile
+                watermark.style.fontSize = '12px';
                 watermark.style.bottom = '10px';
                 watermark.style.right = '10px';
             } else if (width < 1024) {
-                watermark.style.fontSize = '16px'; // Tablet
+                watermark.style.fontSize = '16px';
                 watermark.style.bottom = '15px';
                 watermark.style.right = '15px';
             } else {
-                watermark.style.fontSize = '22px'; // Desktop
+                watermark.style.fontSize = '22px';
                 watermark.style.bottom = '20px';
                 watermark.style.right = '20px';
             }
         }
         window.addEventListener('resize', adjustWatermark);
-        adjustWatermark(); // Initial call
+        adjustWatermark(); 
 
-        // --- PWA Installation Logic ---
+        // PWA Installation Logic
         let deferredPrompt;
         window.addEventListener('beforeinstallprompt', (e) => {
-            // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
-            // Stash the event so it can be triggered later.
             deferredPrompt = e;
-            // Update UI notify the user they can install the PWA
             installBtn.style.display = 'inline-block';
         });
 
