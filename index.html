@@ -18,25 +18,25 @@
 
         body {
             margin: 0;
-            padding: 20px;
+            padding: 15px;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
             flex-direction: column;
             align-items: center;
-            height: 100vh;
+            min-height: 100vh; /* Changed from fixed height to prevent clipping */
             box-sizing: border-box;
-            overflow: hidden;
         }
 
         .controls {
             display: flex;
-            gap: 12px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 15px;
             flex-wrap: wrap;
             justify-content: center;
             width: 100%;
+            z-index: 10;
         }
 
         input[type="file"] {
@@ -46,7 +46,7 @@
         .btn {
             background-color: var(--accent-color);
             color: #333;
-            padding: 10px 20px;
+            padding: 10px 18px;
             border: none;
             border-radius: 30px;
             font-size: 15px;
@@ -54,25 +54,17 @@
             cursor: pointer;
             transition: background-color 0.3s ease, transform 0.1s ease;
             box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            white-space: nowrap;
         }
 
-        .btn:hover {
-            background-color: var(--accent-hover);
-        }
+        .btn:hover { background-color: var(--accent-hover); }
+        .btn:active { transform: scale(0.98); }
 
-        .btn:active {
-            transform: scale(0.98);
-        }
-
-        /* Made the install button always visible for debugging, but styled differently */
         #installBtn {
             background-color: #baffc9;
             border: 2px solid #82e09c;
         }
-        
-        #installBtn:hover {
-            background-color: #90f2a7;
-        }
+        #installBtn:hover { background-color: #90f2a7; }
 
         .workspace {
             width: 100%;
@@ -80,12 +72,12 @@
             flex-grow: 1;
             display: flex;
             flex-direction: column;
-            min-height: 0;
             position: relative;
+            min-height: 60vh;
         }
 
         .editor-container {
-            display: none; 
+            display: none; /* Hidden by default */
             flex: 1;
             flex-direction: column;
             background-color: var(--container-bg);
@@ -140,6 +132,7 @@
             background: #fff;
         }
 
+        /* Fixed strictly inside the preview container so it shows in Fullscreen */
         #watermark {
             position: absolute;
             bottom: 20px;
@@ -162,17 +155,6 @@
             width: 100vw;
             height: 100vh;
         }
-
-        @media (max-width: 800px) {
-            body {
-                overflow: auto; 
-                height: auto;
-                min-height: 100vh;
-            }
-            .workspace {
-                height: 70vh;
-            }
-        }
     </style>
 </head>
 <body>
@@ -184,17 +166,17 @@
         <button class="btn" id="toggleViewBtn">Edit Code</button>
         <button class="btn" id="printBtn">Print Preview</button>
         <button class="btn" id="fullscreenBtn">Full Screen</button>
-        
-        <!-- PWA Install Button -->
         <button class="btn" id="installBtn">Install App</button>
     </div>
 
     <div class="workspace">
+        <!-- Live Editor -->
         <div class="editor-container" id="editor-container">
             <div class="editor-header">Live Code Editor</div>
             <textarea id="code-editor" spellcheck="false" placeholder="Upload a file or type HTML here..."></textarea>
         </div>
 
+        <!-- HTML Visual Preview -->
         <div id="preview-container">
             <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-modals allow-popups"></iframe>
             <div id="watermark">By Hucinty</div>
@@ -215,7 +197,7 @@
 
         let isCodeView = false;
 
-        // View Toggling Logic
+        // View Toggling Logic (Shows Code Editor separately)
         toggleViewBtn.addEventListener('click', () => {
             isCodeView = !isCodeView;
             if (isCodeView) {
@@ -229,7 +211,7 @@
             }
         });
 
-        // Update iframe when typing in editor
+        // Sync typing to visual preview
         codeEditor.addEventListener('input', () => {
             previewFrame.srcdoc = codeEditor.value;
         });
@@ -244,6 +226,7 @@
                     codeEditor.value = content;
                     previewFrame.srcdoc = content;
                     
+                    // Auto-switch to preview if user uploads a file while in code view
                     if (isCodeView) {
                         toggleViewBtn.click();
                     }
@@ -252,7 +235,7 @@
             }
         });
 
-        // Master Print Logic
+        // Prints ALL pages of the iframe context natively
         printBtn.addEventListener('click', () => {
             if (previewFrame.contentWindow) {
                 previewFrame.contentWindow.focus();
@@ -260,21 +243,21 @@
             }
         });
 
-        // Fullscreen Logic
+        // Fullscreen Logic (Preview Only)
         fullscreenBtn.addEventListener('click', () => {
             if (isCodeView) {
-                toggleViewBtn.click();
+                toggleViewBtn.click(); // Force back to preview before fullscreen
             }
             if (!document.fullscreenElement) {
                 previewContainer.requestFullscreen().catch(err => {
-                    alert(`Error attempting to enable fullscreen: ${err.message}`);
+                    console.error("Fullscreen error:", err);
                 });
             } else {
                 document.exitFullscreen();
             }
         });
 
-        // Device-based Watermark Sizing
+        // Dynamic Watermark adjustment
         function adjustWatermark() {
             const width = window.innerWidth;
             if (width < 600) {
@@ -294,9 +277,8 @@
         window.addEventListener('resize', adjustWatermark);
         adjustWatermark(); 
 
-        // PWA Installation Logic
+        // PWA Installation Trigger
         let deferredPrompt = null;
-        
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
@@ -312,17 +294,16 @@
                 }
                 deferredPrompt = null;
             } else {
-                // Helpful fallback message if testing incorrectly
-                alert("The app cannot be installed yet. Please ensure you are running this on localhost or HTTPS, and that your manifest.json and sw.js files are correctly linked in the same folder.");
+                alert("App cannot be installed right now. Ensure you are running this over a local server or HTTPS.");
             }
         });
 
-        // Register Service Worker
+        // Service Worker Registration
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(registration => console.log('SW registered successfully'))
-                    .catch(err => console.log('SW registration failed:', err));
+                    .then(() => console.log('SW Registered'))
+                    .catch(err => console.error('SW Error:', err));
             });
         }
     </script>
