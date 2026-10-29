@@ -64,9 +64,10 @@
             transform: scale(0.98);
         }
 
+        /* Made the install button always visible for debugging, but styled differently */
         #installBtn {
-            display: none; 
             background-color: #baffc9;
+            border: 2px solid #82e09c;
         }
         
         #installBtn:hover {
@@ -84,7 +85,7 @@
         }
 
         .editor-container {
-            display: none; /* Hidden by default */
+            display: none; 
             flex: 1;
             flex-direction: column;
             background-color: var(--container-bg);
@@ -180,22 +181,20 @@
         <label for="fileInput" class="btn">Upload HTML</label>
         <input type="file" id="fileInput" accept=".html,.htm">
         
-        <!-- New Toggle Code Button -->
         <button class="btn" id="toggleViewBtn">Edit Code</button>
-        
         <button class="btn" id="printBtn">Print Preview</button>
         <button class="btn" id="fullscreenBtn">Full Screen</button>
-        <button class="btn" id="installBtn">Download App</button>
+        
+        <!-- PWA Install Button -->
+        <button class="btn" id="installBtn">Install App</button>
     </div>
 
     <div class="workspace">
-        <!-- Editor View (Hidden by default) -->
         <div class="editor-container" id="editor-container">
             <div class="editor-header">Live Code Editor</div>
             <textarea id="code-editor" spellcheck="false" placeholder="Upload a file or type HTML here..."></textarea>
         </div>
 
-        <!-- Preview View (Visible by default) -->
         <div id="preview-container">
             <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin allow-modals allow-popups"></iframe>
             <div id="watermark">By Hucinty</div>
@@ -245,7 +244,6 @@
                     codeEditor.value = content;
                     previewFrame.srcdoc = content;
                     
-                    // Auto-switch to preview mode when a new file is uploaded
                     if (isCodeView) {
                         toggleViewBtn.click();
                     }
@@ -254,7 +252,7 @@
             }
         });
 
-        // Master Print Logic - targets the iframe document directly
+        // Master Print Logic
         printBtn.addEventListener('click', () => {
             if (previewFrame.contentWindow) {
                 previewFrame.contentWindow.focus();
@@ -264,11 +262,9 @@
 
         // Fullscreen Logic
         fullscreenBtn.addEventListener('click', () => {
-            // If in code view, switch to preview before going fullscreen
             if (isCodeView) {
                 toggleViewBtn.click();
             }
-
             if (!document.fullscreenElement) {
                 previewContainer.requestFullscreen().catch(err => {
                     alert(`Error attempting to enable fullscreen: ${err.message}`);
@@ -299,11 +295,12 @@
         adjustWatermark(); 
 
         // PWA Installation Logic
-        let deferredPrompt;
+        let deferredPrompt = null;
+        
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-            installBtn.style.display = 'inline-block';
+            installBtn.textContent = 'Install App Now';
         });
 
         installBtn.addEventListener('click', async () => {
@@ -314,6 +311,9 @@
                     installBtn.style.display = 'none';
                 }
                 deferredPrompt = null;
+            } else {
+                // Helpful fallback message if testing incorrectly
+                alert("The app cannot be installed yet. Please ensure you are running this on localhost or HTTPS, and that your manifest.json and sw.js files are correctly linked in the same folder.");
             }
         });
 
@@ -321,7 +321,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('sw.js')
-                    .then(registration => console.log('SW registered'))
+                    .then(registration => console.log('SW registered successfully'))
                     .catch(err => console.log('SW registration failed:', err));
             });
         }
